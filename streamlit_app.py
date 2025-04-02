@@ -106,6 +106,18 @@ with col1:
                     instructions=f"あなたは {st.session_state.target_school} の公式ウェブサイトや信頼できる教育情報サイトから、{target_year_str} の（現時点で利用可能な最新の）入試要綱、科目、日程に関する公式情報を正確に収集する専門家です。特に指定がない限り、最新の確定情報を優先してください。",
                     tools=[web_search_tool]
                 )
+                # DetailedExamInfoResearcher エージェントの定義を追加
+                DetailedExamInfoResearcher = Agent(
+                    name="DetailedExamInfoResearcher",
+                    instructions=f"あなたは `OfficialInfoResearcher` が特定した {st.session_state.target_school} の {target_year_str} の各入試（種類と日程）について、さらに詳細な情報を深掘りする専門家です。具体的には、各入試のテスト科目、試験時間、配点、出題範囲などの詳細情報を公式ウェブサイトや信頼できる情報源から収集してください。",
+                    tools=[web_search_tool]
+                )
+                # TranscriptScoreResearcher エージェントの定義を追加
+                TranscriptScoreResearcher = Agent(
+                    name="TranscriptScoreResearcher",
+                    instructions=f"あなたは {st.session_state.target_school} の {target_year_str} の入試において、内申点（調査書点）が必要かどうか、また必要な場合はどのように評価されるか（例: 点数化の方法、学科試験との比率、重視される学年や科目など）を調査する専門家です。公式の入試要綱や信頼できる情報源から正確な情報を収集してください。",
+                    tools=[web_search_tool]
+                )
                 FutureTrendsResearcher = Agent(
                     name="FutureTrendsResearcher",
                     instructions=f"あなたは教育関連ニュース、学校の発表、過去の変更履歴などを調査し、{target_year_str}の{st.session_state.target_school}の入試に関する予測や可能性のある変更点について情報を収集する専門家です。情報は未確定である可能性を明記してください。",
@@ -125,15 +137,20 @@ with col1:
 1. まず、`SchoolExistenceChecker` に学校名「{st.session_state.target_school}」の存在確認を依頼します。
 2. `SchoolExistenceChecker` から 'SCHOOL_NOT_FOUND' という応答があった場合は、他のリサーチは一切行わず、最終的な出力として「入力された学校の情報が見つかりませんでした。」というメッセージだけを生成してください。
 3. 学校が存在する場合（'SCHOOL_NOT_FOUND' 以外の応答があった場合）のみ、以下のステップに進みます。
-    a. ユーザーのリクエスト「{st.session_state.target_school}の{target_year_str}の入試の要綱とそれぞれの入試の実施日時を調べてください。」を分析します。
-    b. 必要な情報を特定し、`OfficialInfoResearcher` と `FutureTrendsResearcher` にタスクを割り当てます。
-    c. 得られた結果を `FactCheckerAgent` に渡し、検証させます。
-    d. 検証済みの情報を `WriterAgent` に渡し、最終的なレポート作成を指示します。""",
-                    handoffs=[SchoolExistenceChecker, OfficialInfoResearcher, FutureTrendsResearcher, FactCheckerAgent, WriterAgent] # SchoolExistenceChecker を最初に追加
+    a. ユーザーのリクエスト「{st.session_state.target_school}の{target_year_str}の入試の要綱、それぞれの入試の実施日時、テストの詳細、および内申点の要否・評価方法を調べてください。」を分析します。
+    b. 必要な情報を特定し、以下のリサーチャーにタスクを割り当てます:
+        - `OfficialInfoResearcher`: 基本的な入試要綱、種類、日程の調査。
+        - `DetailedExamInfoResearcher`: 各入試のテスト科目、時間、配点などの詳細情報の調査。
+        - `TranscriptScoreResearcher`: 内申点の要否、評価方法、影響度などの調査。
+        - `FutureTrendsResearcher`: {target_year_str} の入試に関する予測や変更点の調査。
+    c. すべてのリサーチャーから得られた結果を `FactCheckerAgent` に渡し、検証させます。
+    d. 検証済みの情報を `WriterAgent` に渡し、収集されたすべての情報（基本情報、詳細情報、内申点情報、将来の動向）を含む最終的なレポート作成を指示します。""",
+                    handoffs=[SchoolExistenceChecker, OfficialInfoResearcher, DetailedExamInfoResearcher, TranscriptScoreResearcher, FutureTrendsResearcher, FactCheckerAgent, WriterAgent] # TranscriptScoreResearcher を追加
                 )
 
                 # --- 実行 ---
-                initial_prompt = f"{st.session_state.target_school}の{target_year_str}の入試の要綱とそれぞれの入試の実施日時を調べてください。"
+                # initial_prompt も更新
+                initial_prompt = f"{st.session_state.target_school}の{target_year_str}の入試の要綱、それぞれの入試の実施日時、テストの詳細（科目、時間、配点など）、および内申点の要否・評価方法を調べてください。"
 
                 with st.spinner('エージェントが情報を調査中です...'):
                     result = Runner.run_sync(
