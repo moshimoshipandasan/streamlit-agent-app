@@ -26,7 +26,7 @@ st.title("学校入試情報調査アプリ")
 
 # 学校名の入力 (セッション状態を使用)
 st.session_state.target_school = st.text_input(
-    "調査対象の学校名を入力してください:",
+    "調査対象の学校名や条件を入力してください:",
     value=st.session_state.target_school,
     disabled=st.session_state.is_running # 調査中は無効化
 )
