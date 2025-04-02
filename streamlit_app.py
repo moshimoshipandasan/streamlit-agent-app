@@ -3,7 +3,9 @@ from agents import Agent, Runner, WebSearchTool, handoff
 from agents.tool import UserLocation
 import datetime
 import nest_asyncio
+from dotenv import load_dotenv # .env ファイルを読み込むために追加
 
+load_dotenv() # .env ファイルから環境変数を読み込む
 nest_asyncio.apply() # イベントループのネストを許可
 
 # --- セッション状態の初期化 ---

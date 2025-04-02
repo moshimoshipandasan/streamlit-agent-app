@@ -1,4 +1,5 @@
 streamlit
 nest_asyncio
+python-dotenv # Add this line to load .env files
 # Install openai-agents directly from GitHub
 openai-agents @ git+https://github.com/openai/openai-agents-python.git
