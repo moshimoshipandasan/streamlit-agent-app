@@ -15,6 +15,8 @@ if 'year_option' not in st.session_state:
     st.session_state.year_option = '現在の情報に基づいて自動計算'
 if 'manual_year' not in st.session_state:
     st.session_state.manual_year = datetime.date.today().year + 1
+if 'is_running' not in st.session_state:
+    st.session_state.is_running = False
 
 
 # --- Streamlit UI ---
@@ -23,14 +25,16 @@ st.title("学校入試情報調査アプリ")
 # 学校名の入力 (セッション状態を使用)
 st.session_state.target_school = st.text_input(
     "調査対象の学校名を入力してください:",
-    value=st.session_state.target_school
+    value=st.session_state.target_school,
+    disabled=st.session_state.is_running # 調査中は無効化
 )
 
 # 年度を自動計算するか、手動で入力するか選択 (セッション状態を使用)
 st.session_state.year_option = st.radio(
     "年度の指定方法を選択してください:",
     ('現在の情報に基づいて自動計算', '手動で年度を指定'),
-    index=0 if st.session_state.year_option == '現在の情報に基づいて自動計算' else 1
+    index=0 if st.session_state.year_option == '現在の情報に基づいて自動計算' else 1,
+    disabled=st.session_state.is_running # 調査中は無効化
 )
 
 target_year_str = ""
@@ -52,7 +56,8 @@ else:
         min_value=2000,
         max_value=2100,
         value=st.session_state.manual_year,
-        step=1
+        step=1,
+        disabled=st.session_state.is_running # 調査中は無効化
     )
     if st.session_state.manual_year:
         target_year_str = f"{st.session_state.manual_year}年度"
@@ -63,7 +68,7 @@ col1, col2 = st.columns(2)
 
 # 調査開始ボタン
 with col1:
-    if st.button("調査開始"):
+    if st.button("調査開始", disabled=st.session_state.is_running): # 調査中は無効化
         if not st.session_state.target_school:
             st.warning("学校名を入力してください。")
         elif not target_year_str:
@@ -71,6 +76,7 @@ with col1:
         else:
             st.info(f"{st.session_state.target_school} の {target_year_str} の入試情報を調査します...")
             st.session_state.result_text = "" # 結果をリセット
+            st.session_state.is_running = True # 調査開始フラグを立てる
 
             # --- エージェント実行ロジック ---
             try:
@@ -143,6 +149,9 @@ with col1:
             except Exception as e:
                 st.session_state.result_text = f"エラーが発生しました: {e}"
                 st.error(st.session_state.result_text)
+            finally:
+                st.session_state.is_running = False # 調査完了またはエラー時にフラグを下ろす
+                st.rerun() # UIを更新して入力を再度有効化
 
 # リセットボタン
 with col2:
@@ -151,6 +160,7 @@ with col2:
         st.session_state.year_option = '現在の情報に基づいて自動計算'
         st.session_state.manual_year = datetime.date.today().year + 1
         st.session_state.result_text = ""
+        st.session_state.is_running = False # 実行フラグもリセット
         st.rerun() # 画面を再描画して入力をクリア
 
 
